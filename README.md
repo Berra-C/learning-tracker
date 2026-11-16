@@ -1,75 +1,72 @@
-# Learning Tracker
+# Learning Tracker — v0.1 integration build
 
-A static, Turkish-language student learning organizer with a modular, dependency-free JavaScript frontend. Based on the provided **Learning Tracker prototype v1.9** (HTML file named `learning_tracker_v2_0.html`). Layout, warm ivory/teal and dark themes, topic geometry, calendar design and marker-like highlights have been retained.
+Learning Tracker, using the approved `learning_tracker_v2_0.html` interface as its design reference and **Productivity App v96** as its authentication and backend architecture reference.
 
-## What works in a local workspace
+This is a **locally tested integration build**, not a verified live deployment. The Supabase migration and modified Edge Function have **not** been applied to any remote project.
 
-- Create, edit, categorize, archive and delete courses.
-- Manage independent books, videos, websites and other resources.
-- Import real source hierarchies using an external AI chatbot and validated JSON; edit, reorder, add and remove nodes before confirming; existing IDs and completion are preserved when editing.
-- Track leaf topics independently in each resource, with combined-topic course weighting and group percentages.
-- Plan individual or multiple topics across Monday–Sunday weeks, move or remove assignments and preserve assignment events.
-- Produce end-of-week reviews without automatically rescheduling; keep completed/incomplete history based on completion timestamps.
-- Display current-week targets prominently and future weeks subtly, plus data-backed analytics.
-- Save local work, export/import validated JSON backups, maintain light and dark modes, mobile layouts and source-prototype visual indicators.
+## Files
 
-**Important:** The local workspace is a genuine offline/local data mode, NOT a substitute for shared student authentication. It makes no claim to cloud syncing.
+- `index.html` — GitHub Pages entry point, preserving the prototype’s navigation and visual components.
+- `assets/css/prototype.css` — retained prototype stylesheet, including light/dark themes and geometric markers.
+- `assets/css/app.css` — functional UI additions.
+- `assets/js/modules/01-model.js` — courses, resources, stable IDs, progress, assignments, events, reviews, snapshots and merge logic.
+- `assets/js/modules/02-importer.js` — external-AI prompt, JSON validation, editable hierarchy import.
+- `assets/js/modules/03-cloud.js` — shared Productivity App session, account API, account-specific local caching, conflict detection and sync.
+- `assets/js/modules/04-ui.js` — browser UI composition and interactions.
+- `assets/js/cloud-config.js` — copied **public/publishable** Productivity App v96 endpoint configuration, not a private key.
+- `assets/js/app.js` — generated production bundle; do not modify directly.
+- `supabase/migrations/004_learning_tracker_states.sql` — new isolated state table.
+- `supabase/functions/app-api/index.ts` — **complete Productivity App v96 Edge Function**, with additive Learning Tracker routes.
+- `supabase/functions/app-api/product-analytics.mjs` and `deno.d.ts` — dependencies carried over unchanged from the v96 archive.
+- `tests/` — deterministic domain tests and Chromium DOM smoke test.
 
-## What is prepared but NOT connected or validated
+## Local commands
 
-The user-provided Productivity App repository (`https://github.com/Berra-C/productivity-app`) could not be accessed in this environment. Its existing auth response shape, session field names, `app_accounts.id` type, rate limiting and active CORS deployment could not be verified. Do **not** assume that shared login, registration, device management, cross-app sessions or production cloud persistence have already been tested.
-
-- `assets/js/modules/cloud.js` is a shared-auth adapter using the specification's `signup`, `login`, `me`, `logout`, `list-devices`, and `revoke-other-devices` actions and the specified shared session keys.
-- `supabase/migrations/20261116_learning_tracker_states.sql` creates a **separate** state table and revision-safe atomic CAS RPC, without altering the productivity database.
-- `supabase/patches/learning-tracker-actions.ts` implements additive pull/push operations **only when called after existing Productivity App authentication**; it must be wired into the verified authenticated action switch.
-- `assets/js/cloud-config.js` has deliberately empty public endpoint settings. Populate ONLY from the actual existing `cloud-config.js`; do not embed service-role credentials.
-- Productivity App focus-time aggregation is deliberately **not** simulated. It requires a real, authenticated read-only API with actual subject/session schemas; mapping preferences can be stored.
-
-**A hosted/production deployment is not included.** No production repositories, tables or cloud functions were changed in this deliverable.
-
-## Run locally
-
-```sh
-npm run check
-python3 -m http.server 8080
-```
-
-Open `http://localhost:8080` and choose **Yerel çalışma alanını aç (deneme)**. Browser data is stored under `lt_demo_v1`. Hosting the files on the same GitHub Pages origin will not automatically make them authenticate: configure and deploy the backend changes first.
-
-## Connect to the existing backend (requires authorized access)
-
-1. Inspect the live Productivity App repository's README, `ARCHITECTURE.md`, `assets/js/cloud-sync.js`, `assets/js/cloud-config.js`, migrations, and `supabase/functions/app-api/index.ts` before using these patches.
-2. Ensure the proposed public `app_accounts.id` FK type, actual SQL schemas, session expiry semantics, service client usage and CORS allowlist match the live repository. The SQL migration infers the FK type from the `app_accounts` table, but must be reviewed against the deployed database.
-3. On a **separate backend branch**, review and apply the additive migration (do not merge directly to production).
-4. Integrate `handleLearningTrackerAction` after existing session verification; use the account ID derived server-side from that verified session. Never trust a client-supplied account ID or accept service keys in the browser.
-5. Verify the existing auth field names in `cloud.js`; adapt request and response to match the real backend's `signup`, `login`, `me` and session validation contracts. Verify cross-origin request headers. Reuse the same public endpoint/config.
-6. Run real existing-user/new-user, expired token, logout, device revoke, rate-limit and multi-device conflict tests on **staging**, then enable production.
-7. Create and publish a GitHub Pages project, commit the whole folder including generated `assets/js/app.js`, and ensure both apps are served from the same origin if storage-based session sharing is desired.
-
-## Development
-
-All edited frontend logic belongs in `assets/js/modules/` and `assets/js/app-main.js`. `assets/js/app.js` is generated. `scripts/module-manifest.js` defines build order.
-
-```sh
+```bash
 npm run build
-npm run test
 npm run check
 ```
 
-`npm run check` covers source syntax and Node core-domain tests. Actual browser integration, backend contract, CORS, authenticated sessions, concurrent-device behavior, and GitHub Pages hosting must still be verified in staging.
+No dependency installation is required for those tests; Chromium must be available for `browser:check`. For local browsing, use a local static HTTP server or upload the frontend to GitHub Pages.
 
-## Data and history semantics
+## Deployment sequence (manual; not yet performed)
 
-Each resource owns its ordered recursive node tree. Only non-group leaf nodes count toward progress. Events retain timestamped status changes. Weekly assignments record moves/removals and do not carry unfinished work forward automatically. Closed-week reviews retain a snapshot. Resources and topics are soft deleted to keep historical records and prevent reappearance after sync. Cloud CAS uses an expected revision; divergent same-record edits require explicit user choice.
+1. **Back up** the existing Supabase database and the existing `supabase/functions/app-api/index.ts` from the current Productivity App project.
+2. In the **same existing Supabase project**, run `supabase/migrations/004_learning_tracker_states.sql` using the SQL editor or the normal migration workflow. Confirm the table `public.learning_tracker_states` exists and has RLS enabled. It is separate from `public.app_states`.
+3. In the **Productivity App** repository, replace `supabase/functions/app-api/index.ts` with the provided updated file. Retain `product-analytics.mjs` and related function configuration from v96. Deploy the existing `app-api` Edge Function using your usual workflow. **Do not expose** service-role keys in the frontend or chat.
+4. Verify the existing Productivity App still supports `signup`, `login`, `me`, `sync-pull`, `sync-push`, device list and logout. Then verify authenticated `learning-tracker-sync-pull`, `learning-tracker-sync-push`, and `learning-tracker-study-summary` calls. Unauthenticated calls must return HTTP 401.
+5. Upload the frontend `index.html`, `assets/`, `scripts/`, `tests/`, `package.json` and `README.md` (the Supabase migration/function files may be kept alongside the project for reference) to the intended `learning-tracker` GitHub Pages repository. Enable Pages for the deployment branch/root, keeping relative asset paths intact.
+6. For automatic session sharing via browser storage, both frontends must use the **same origin** (scheme + hostname + port); paths may differ. For example `https://berra-c.github.io/productivity-app/` and `https://berra-c.github.io/learning-tracker/`. If the origins differ, the **same credentials** still work, but the user must sign in separately.
+7. Test with an existing user on both apps, then with a new user created in Learning Tracker and recognized in Productivity App. Verify multi-device sync, logout/revocation, conflict handling and mobile appearance before general rollout.
 
-## Limitations
+## Functional features in this build
 
-- Real cloud login and sync are integration-ready, not verified or deployed.
-- No actual Productivity App focus-time integration until its session schema can be inspected and authorized endpoints added.
-- Local mode is one-browser storage and cannot sync devices.
-- Browser UI has not been validated on all target devices or against a real shared account.
-- Some advanced import hierarchy editing (e.g. drag-and-drop) is offered via explicit up/down/outdent operations rather than direct mouse drag.
+- Shared identity and login using Productivity App's username, two-word magic phrase and six-digit code.
+- Registration using the existing server-side username/phrase generator; credentials shown until the user confirms they are saved.
+- Existing browser session keys (`test_cloud_session`, `test_cloud_username`, `test_cloud_account_id`) with server-side validation via `me`.
+- Separate per-account Learning Tracker state table, local caching, pull/push with optimistic revisions, conflict merge with on-device recovery backup and manual sync.
+- Add/edit/category/color/archive/delete/restore courses and resources. Multiple resources per course.
+- External AI import prompt, JSON validation, editable hierarchy preview, arbitrary practical-depth nested topic structure and stable internal IDs.
+- Add/reorder/reparent/rename/remove topics, parent bulk completion, topic statuses and leaf-only combined progress percentages.
+- Monday–Sunday calendar, multi-topic bulk scheduling, moving/removing planned items and assignment history.
+- End-of-week completion snapshot and manual review of unfinished topics; previously recorded weekly percentages do not update from later progress.
+- Dashboard, upcoming weeks, weekly history, course/resource progress and read-only Productivity App subject durations.
+- JSON backup and restoration. Light/dark themes and responsive layout based on the supplied prototype.
 
-## Security
+## Test results
 
-Never commit service role keys. The backend helper is **not** an independent auth service. Browser requests use the existing session convention. Server access must use the existing verified session account ID and the app-specific table. Exported backups can contain private learning data and should be stored securely.
+`npm run check` validates production bundle freshness and syntax, runs domain tests covering progress/weighting, recursive import, historical snapshots and merging, and runs a **real Chromium DOM smoke test** for login and course/resource/import/planning actions using an explicitly mocked API. It does not test the actual Supabase network or database, GitHub Pages origin sharing, CSP, browser storage persistence, live two-device sync, or deployment.
+
+## Known limitations and work still required before production release
+
+1. No live Supabase/Deno compilation or end-to-end production network tests have been performed.
+2. Advanced sync conflict resolution uses stable record IDs, timestamps, tombstones and full local conflict backups. Same-record simultaneous edits still resolve deterministically by newest timestamp, not a per-field interactive merge. Users can download conflict backups in Settings. More automated conflict scenarios should be tested.
+3. The hierarchy editor supports nested structures, editing, adding and ordering by a numeric position; it does not yet provide a drag-and-drop tree rearrangement UI.
+4. The browser smoke test does not perform screenshot-based responsive/theming accessibility review. Mobile visual QA is still needed.
+5. Historical course/resource graphs use recorded completion events, but changing hierarchy membership or deleting a topic later can affect historical denominators; fully event-sourced hierarchy snapshots are still required for rigorous longitudinal comparison.
+6. Passwordless credential recovery is delegated to the existing Productivity App administrator workflow; no independent recovery is introduced.
+7. The Supabase v96 ZIP contains migrations `002` and `003`, but not the original initial migration. The new SQL uses the known `public.app_accounts(id)` UUID relationship visible in migration `003`; confirm against your deployed schema before running it.
+8. Existing prototype demo data is **not** silently migrated into student accounts. Each account starts empty; using a legacy prototype requires a deliberate conversion process to preserve genuine data and avoid importing example courses as student progress.
+9. AI imports support at most 20,000 nodes and 80 recursive levels as safety limits. They do not access external AI APIs inside Learning Tracker.
+
+Do not roll out to students until the backend, actual session-sharing behavior and data integrity are verified in a staging/live test account.

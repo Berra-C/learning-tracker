@@ -1,0 +1,16 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const ctx=vm.createContext({window:{},globalThis:{crypto:require('node:crypto').webcrypto},Date,Math,JSON,Map,Set,WeakSet,Error,Number,String,Array,Object,RegExp});
+for(const name of ['01-model.js','02-importer.js'])vm.runInContext(fs.readFileSync('assets/js/modules/'+name,'utf8'),ctx,{filename:name});
+const m=ctx.window.LT.model,im=ctx.window.LT.importer;
+let s=m.newState();assert.equal(s.schemaVersion,1);assert.equal(m.weekStart('2026-11-19'),'2026-11-16');assert.equal(m.sunday('2026-11-16'),'2026-11-22');assert.equal(m.weekStart('2026-12-31'),'2026-12-28');
+const c=m.add(s,'courses',{name:'Physics',category:'school',color:'#159e89'}),r=m.add(s,'resources',{title:'Textbook',type:'book',courseId:c.id,sourceUrl:''});
+let doc=im.validate('```json\n'+JSON.stringify({schema_version:1,resource_title:'Textbook',source_access:'full',notes:[],structure:[{title:'Ch 1',children:[{title:'1.1',children:[]},{title:'1.2',children:[]}]}]})+'\n```');
+assert.equal(im.commit(s,r.id,doc).length,3);assert.equal(m.leaves(s,r.id).length,2);assert.equal(m.resourceStats(s,r.id).pct,0);
+const n=m.leaves(s,r.id)[0],other=m.leaves(s,r.id)[1];m.setStatus(s,n.id,'completed');assert.equal(m.resourceStats(s,r.id).pct,50);assert.equal(m.courseStats(s,c.id).pct,50);m.update(n,{title:'Renamed'});assert.equal(m.status(s,n.id),'completed');
+const r2=m.add(s,'resources',{title:'Another resource',type:'video',courseId:c.id});im.commit(s,r2.id,doc);assert.equal(m.courseStats(s,c.id).pct,25);assert.equal(m.resourceStats(s,r2.id).pct,0);
+let w=m.weekStart(m.dayISO(new Date()));m.assign(s,n.id,w);assert.equal(m.assignmentRows(s,w).length,1);let w2=m.addDays(w,7);m.assign(s,n.id,w2);assert.equal(m.assignmentRows(s,w).length,0);assert.equal(m.assignmentRows(s,w2).length,1);assert.equal(s.assignments.length,2);assert.equal(s.assignments[0].status,'moved');m.assign(s,n.id,w2);assert.equal(s.assignments.length,2);m.unassign(s,n.id);assert.equal(m.liveAssignments(s).length,0);
+let old=m.addDays(w,-7);let oldN=other.id;m.add(s,'assignments',{nodeId:oldN,courseId:c.id,resourceId:r.id,weekStartDate:old,status:'active'});s.assignments.at(-1).createdAt=m.weekEndStamp(old);assert.equal(m.ensureReviews(s),true);let review=m.activeReview(s);assert.equal(review.weekStartDate,old);assert.equal(review.plannedCount,1);assert.equal(review.completedCount,0);m.setStatus(s,oldN,'completed');assert.equal(m.weekStats(s,old).pct,0);assert.equal(m.weekStats(s,old).done,0);
+let remote=m.clone(s),local=m.clone(s);m.add(remote,'courses',{name:'From other device',category:'school',color:'#fff'});m.add(local,'courses',{name:'From this device',category:'independent',color:'#000'});let merged=m.safeMerge(remote,local);assert.equal(m.courses(merged).length,3);assert.equal(merged.events.length,s.events.length);
+for(const bad of ['{}','{"schema_version":2}','{"schema_version":1,"resource_title":"R","source_access":"full","notes":[],"structure":[{"title":"x"}]}'])assert.throws(()=>im.validate(bad));
+assert.throws(()=>im.commit(s,r.id,doc));assert.throws(()=>m.assign(s,oldN,'2026-11-17'));
+console.log('Domain tests passed: week boundaries, hierarchy, leaf progress, independent resources, assignment history, reviews, conflict merge, JSON validation');

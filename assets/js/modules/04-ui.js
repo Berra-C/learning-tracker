@@ -40,10 +40,14 @@ function scheduleHighlightBands(){
 }
 function paintHighlightBands(){
  document.querySelectorAll('#unitsGrid .unit-dots, #unitsGrid .topic-leaf-grid').forEach(grid=>{
-  grid.querySelectorAll(':scope > .lt-week-band').forEach(el=>el.remove());
+  grid.querySelectorAll(':scope > .lt-week-band-layer').forEach(el=>el.remove());
   if(!showWeeks||!grid.getClientRects().length)return;
   const items=[...grid.children].filter(el=>el.classList.contains('map-item'));
   const gridRect=grid.getBoundingClientRect();
+  const layer=document.createElement('div');
+  layer.className='lt-week-band-layer';
+  layer.setAttribute('aria-hidden','true');
+  grid.insertBefore(layer,grid.firstChild);
   let group=[];
   const flush=()=>{
    if(!group.length)return;
@@ -60,7 +64,7 @@ function paintHighlightBands(){
    strip.style.top=(a.top-gridRect.top-padY)+'px';
    strip.style.width=(b.right-a.left+padX*2)+'px';
    strip.style.height=(Math.max(a.height,b.height)+padY*2)+'px';
-   grid.append(strip);
+   layer.append(strip);
    group=[];
   };
   for(const item of items){
@@ -91,7 +95,7 @@ function renderUnit(root,index){
   const joinedPrev=planned&&previous&&assignedWeek(previous)===week;
   const joinedNext=planned&&next&&assignedWeek(next)===week;
   const classes=['map-item',planned?'week-planned':'',planned&&!joinedPrev?'week-start':'',planned&&!joinedNext?'week-end':''].filter(Boolean).join(' ');
-  return `<div class="${classes}" ${planned?`style="--week-color:${weekColor(week)}" data-week="${week}"`:''}><button data-node-click="${n.id}" title="${esc(n.title)}" class="node ${esc(n.type||'topic')} ${status==='completed'?'completed':status==='progress'?'progress':''} ${selection.has(n.id)?'selected':''}" aria-label="${esc(n.title)}">${mark(n.type)}</button>${showWeeks&&week?`<span class="map-week-badge">${labelDate(week)}</span>`:''}</div>`;
+  return `<div class="${classes}" ${planned?`style="--week-color:${weekColor(week)}" data-week="${week}"`:''}><button data-node-click="${n.id}" class="node lt-tooltip-node ${esc(n.type||'topic')} ${status==='completed'?'completed':status==='progress'?'progress':''} ${selection.has(n.id)?'selected':''}" aria-label="${esc(n.title)}">${mark(n.type)}<span class="lt-node-tooltip" aria-hidden="true">${esc(n.title)}</span></button>${showWeeks&&week?`<span class="map-week-badge">${labelDate(week)}</span>`:''}</div>`;
  };
  const visible=all.filter(x=>!filterCompleted||m.status(s,x.node.id)!=='completed');
  const renderLeafSequence=nodes=>nodes.map((n,i)=>marker(n,nodes[i-1]||null,nodes[i+1]||null)).join('');

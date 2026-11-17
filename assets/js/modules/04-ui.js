@@ -33,21 +33,46 @@ function renderCourses(){let s=state(),cs=m.courses(s);$('#courseTabs').innerHTM
 function descendantLeaves(root){let s=state(),all=m.nodes(s,root.resourceId),parents=new Map();for(let n of all){if(!parents.has(n.parentId))parents.set(n.parentId,[]);parents.get(n.parentId).push(n)}let out=[];function walk(n,path,seen){if(seen.has(n.id))return;seen.add(n.id);let kids=parents.get(n.id)||[];if(!kids.length){out.push({node:n,path:path.join(' › ')})}else for(let child of kids.sort((a,b)=>a.sortOrder-b.sortOrder))walk(child,[...path,child.title],seen)}walk(root,[root.title],new Set());return out}
 function renderUnit(root,index){
  let s=state(),all=descendantLeaves(root),stats=m.stats(s,all.map(x=>x.node)),assignments=m.liveAssignments(s);
- const marker=n=>{let status=m.status(s,n.id),week=assignments.find(a=>a.nodeId===n.id)?.weekStartDate||'',planned=showWeeks&&week;
- return `<div class="map-item ${planned?'week-planned':''}" style="${planned?'--week-color:#159e89':''}"><button data-node-click="${n.id}" title="${esc(n.title)}" class="node ${esc(n.type||'topic')} ${status==='completed'?'completed':status==='progress'?'progress':''} ${selection.has(n.id)?'selected':''}" aria-label="${esc(n.title)}">${mark(n.type)}</button>${week?`<span class="map-week-badge">${labelDate(week)}</span>`:''}</div>`};
- let listed=all.filter(x=>!filterCompleted||m.status(s,x.node.id)!=='completed');
+ const assignedWeeks=new Map(assignments.map(a=>[a.nodeId,a.weekStartDate]));
+ const palette=['#159e89','#b97800','#6f70b5','#b45d79','#477fa8','#8a6c37','#59845c','#9a6aab'];
+ const weeks=m.weeks(s.settings.start,s.settings.end);
+ const assignedWeek=n=>assignedWeeks.get(n.id)||'';
+ const weekColor=week=>palette[Math.max(0,weeks.indexOf(week))%palette.length];
+ const marker=(n,previous,next)=>{
+  const status=m.status(s,n.id),week=assignedWeek(n),planned=showWeeks&&Boolean(week);
+  const joinedPrev=planned&&previous&&assignedWeek(previous)===week;
+  const joinedNext=planned&&next&&assignedWeek(next)===week;
+  const classes=['map-item',planned?'week-planned':'',planned&&!joinedPrev?'week-start':'',planned&&!joinedNext?'week-end':''].filter(Boolean).join(' ');
+  return `<div class="${classes}" ${planned?`style="--week-color:${weekColor(week)}" data-week="${week}"`:''}><button data-node-click="${n.id}" title="${esc(n.title)}" class="node ${esc(n.type||'topic')} ${status==='completed'?'completed':status==='progress'?'progress':''} ${selection.has(n.id)?'selected':''}" aria-label="${esc(n.title)}">${mark(n.type)}</button>${showWeeks&&week?`<span class="map-week-badge">${labelDate(week)}</span>`:''}</div>`;
+ };
+ const visible=all.filter(x=>!filterCompleted||m.status(s,x.node.id)!=='completed');
+ const renderLeafSequence=nodes=>nodes.map((n,i)=>marker(n,nodes[i-1]||null,nodes[i+1]||null)).join('');
  let content='';
  if(view==='grid'&&mapGroupMode){
-  const visibleNodes=new Set(listed.map(x=>x.node.id));
-  function group(n,depth,seen){if(seen.has(n.id))return '';let next=new Set([...seen,n.id]),kids=m.children(s,n.id,n.resourceId),showLeaf=visibleNodes.has(n.id);
-   if(!kids.length)return showLeaf?marker(n):'';
-   let body=kids.map(c=>group(c,depth+1,next)).join('');if(!body)return '';
+  const visibleNodes=new Set(visible.map(x=>x.node.id));
+  function branch(n,seen){
+   if(seen.has(n.id))return '';
+   const next=new Set([...seen,n.id]),kids=m.children(s,n.id,n.resourceId);
+   if(!kids.length)return visibleNodes.has(n.id)?marker(n,null,null):'';
+   const body=children(kids,next);
+   if(!body)return '';
    if(n.id===root.id)return body;
-   return `<section class="topic-subgroup" style="--group-depth:${Math.min(depth,8)}"><h4 class="topic-subgroup-title">${esc(n.title)}</h4><div class="topic-subgroup-content">${body}</div></section>`;
+   return `<section class="topic-subgroup"><h4 class="topic-subgroup-title">${esc(n.title)}</h4><div class="topic-subgroup-content">${body}</div></section>`;
   }
-  content=`<div class="unit-grouped-map ${showWeeks?'show-week-plans':''}">${group(root,0,new Set())||'<span class="muted-text">Gösterilecek konu yok.</span>'}</div>`;
- }else if(view==='grid')content=`<div class="unit-dots ${showWeeks?'show-week-plans':''}">${listed.map(x=>marker(x.node)).join('')||'<span class="muted-text">Gösterilecek konu yok.</span>'}</div>`;
- else content=`<div class="unit-list ${showWeeks?'show-week-plans':''}">${listed.map(({node:n,path})=>{let status=m.status(s,n.id);return `<div class="node-row"> <button data-node-click="${n.id}" title="${esc(n.title)}" class="node ${esc(n.type||'topic')} ${status==='completed'?'completed':status==='progress'?'progress':''}" aria-label="${esc(n.title)}">${mark(n.type)}</button><span class="node-label" title="${esc(path)}">${esc(path)}</span></div>`}).join('')||'<span class="muted-text">Gösterilecek konu yok.</span>'}</div>`;
+  function children(kids,seen){
+   // Adjacent visible leaf siblings form a single uninterrupted highlight segment.
+   const rendered=kids.filter(n=>!seen.has(n.id)&&(!m.children(s,n.id,n.resourceId).length?visibleNodes.has(n.id):true));
+   let html='',leafRun=[];
+   const flush=()=>{if(!leafRun.length)return;html+=`<div class="topic-leaf-grid">${renderLeafSequence(leafRun)}</div>`;leafRun=[]};
+   for(const n of rendered){
+    if(m.children(s,n.id,n.resourceId).length){flush();html+=branch(n,seen)}
+    else leafRun.push(n);
+   }
+   flush();return html;
+  }
+  content=`<div class="unit-grouped-map ${showWeeks?'show-week-plans':''}">${branch(root,new Set())||'<span class="muted-text">Gösterilecek konu yok.</span>'}</div>`;
+ }else if(view==='grid')content=`<div class="unit-dots ${showWeeks?'show-week-plans':''}">${renderLeafSequence(visible.map(x=>x.node))||'<span class="muted-text">Gösterilecek konu yok.</span>'}</div>`;
+ else content=`<div class="unit-list ${showWeeks?'show-week-plans':''}">${visible.map(({node:n,path})=>{let status=m.status(s,n.id);return `<div class="node-row"> <button data-node-click="${n.id}" title="${esc(n.title)}" class="node ${esc(n.type||'topic')} ${status==='completed'?'completed':status==='progress'?'progress':''}" aria-label="${esc(n.title)}">${mark(n.type)}</button><span class="node-label" title="${esc(path)}">${esc(path)}</span></div>`}).join('')||'<span class="muted-text">Gösterilecek konu yok.</span>'}</div>`;
  return `<article class="unit-card"><div class="unit-head"><div class="unit-title-wrap"><div class="unit-num">${index+1}</div><div><div class="unit-title">${esc(root.title)}</div><div class="unit-meta">${stats.done}/${stats.total} konu tamamlandı</div></div></div><div class="unit-actions"><span class="unit-percent">${stats.pct}%</span></div></div>${content}</article>`;
 }
 function renderResources(){let s=state(),selected=$('#resourceFilter').value||'all';$('#resourceFilter').innerHTML='<option value="all">Tüm dersler</option>'+m.courses(s).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');$('#resourceFilter').value=selected;$('#allResourcesGrid').innerHTML=m.resources(s).filter(x=>selected==='all'||x.courseId===selected).map(r=>{let st=m.resourceStats(s,r.id);return `<article class="resource-card"><div class="resource-icon">▤</div><h3>${esc(r.title)}</h3><p>${esc(courseName(r.courseId))} · ${esc(r.type)}</p><div class="resource-foot"><span>${st.done}/${st.total} konu</span><span>${st.pct}%</span></div><div class="open-map"><button class="tiny-btn" data-open-resource="${r.id}">Haritayı aç</button><button class="tiny-btn" data-action="outline-editor" data-id="${r.id}">İçindekileri düzenle</button><details class="resource-more"><summary aria-label="Diğer kaynak seçenekleri">•••</summary><div><button class="tiny-btn" data-action="edit-resource" data-id="${r.id}">Kaynak bilgileri</button><button class="tiny-btn" data-action="archive-resource" data-id="${r.id}">Arşivle</button><button class="tiny-btn" data-action="delete-resource" data-id="${r.id}">Sil</button></div></details></div></article>`}).join('')||'<div class="empty-hint">Henüz kaynak eklenmedi.</div>'}

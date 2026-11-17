@@ -53,10 +53,13 @@ function paintHighlightBands(){
    const strip=document.createElement('div');
    strip.className='lt-week-band';
    strip.style.setProperty('--week-color',first.style.getPropertyValue('--week-color'));
-   strip.style.left=(a.left-gridRect.left-5)+'px';
-   strip.style.top=(a.top-gridRect.top-4)+'px';
-   strip.style.width=(b.right-a.left+10)+'px';
-   strip.style.height=(Math.max(a.height,b.height)+8)+'px';
+   // One background rectangle spans every adjacent topic in this row.
+   // The topic markers sit above it and remain fully visible.
+   const padX=5,padY=4;
+   strip.style.left=(a.left-gridRect.left-padX)+'px';
+   strip.style.top=(a.top-gridRect.top-padY)+'px';
+   strip.style.width=(b.right-a.left+padX*2)+'px';
+   strip.style.height=(Math.max(a.height,b.height)+padY*2)+'px';
    grid.append(strip);
    group=[];
   };

@@ -285,3 +285,25 @@
   visibility:visible;
   transform:translate(-50%,0);
 }
+
+/* v0.1.10 — keep completion ticks centered over topic SVG shapes.
+   v0.1.8 accidentally changed .node-check to position:relative,
+   removing it from the original inset-based overlay position. */
+#unitsGrid .map-item .node .node-check {
+  position:absolute!important;
+  inset:0!important;
+  width:100%;
+  height:100%;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  margin:0!important;
+  padding:0!important;
+  line-height:1!important;
+  transform:none!important;
+  z-index:4!important;
+  pointer-events:none;
+}
+#unitsGrid .map-item .node.completed .node-check {
+  display:flex!important;
+}

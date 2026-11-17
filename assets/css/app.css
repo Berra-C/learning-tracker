@@ -127,3 +127,16 @@
   .unit-card .unit-dots.show-week-plans .map-item:nth-child(7n)::before,
   .unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid>.map-item:nth-child(7n)::before{right:0;border-radius:0 8px 8px 0}
 }
+
+/* v0.1.6 — real continuous weekly highlight, one DOM block per run. */
+.unit-card .unit-dots,
+.unit-card .unit-grouped-map .topic-leaf-grid{position:relative;isolation:isolate}
+.unit-card .unit-dots.show-week-plans .map-item.week-planned::before,
+.unit-card .unit-grouped-map.show-week-plans .map-item.week-planned::before{content:none!important;display:none!important}
+.unit-card .unit-dots .map-item,
+.unit-card .unit-grouped-map .topic-leaf-grid .map-item{position:relative;z-index:1}
+.unit-card .lt-week-band{
+ position:absolute;z-index:0;pointer-events:none;
+ background:color-mix(in srgb,var(--week-color) 36%,var(--panel));
+ border-radius:8px;
+}

@@ -46,3 +46,84 @@
 .topic-subgroup-content>.topic-subgroup{flex-basis:100%}
 .unit-grouped-map .map-item{width:34px;min-height:32px}
 @media(max-width:760px){.outline-children{margin-left:10px;padding-left:9px}.outline-row{flex-wrap:nowrap;min-width:0}.outline-tree{max-height:66vh}.topic-subgroup{margin-left:calc(var(--group-depth)*5px)}}
+
+
+/* v0.1.5 — week highlighting in both standard and grouped topic maps.
+   Each cell owns a non-overlapping piece of a continuous opaque stroke. */
+.unit-card .unit-grouped-map .topic-leaf-grid{
+  display:grid;grid-template-columns:repeat(10,minmax(0,34px));
+  gap:10px 8px;align-items:start;justify-content:start;
+}
+.unit-card .unit-grouped-map .topic-subgroup-content{display:block}
+.unit-card .unit-grouped-map .topic-subgroup-content>.topic-subgroup{margin-top:10px}
+.unit-card .unit-grouped-map>.topic-subgroup{margin-left:0}
+.unit-card .unit-grouped-map .map-item{width:34px;min-width:0;min-height:38px;position:relative;isolation:isolate}
+.unit-card .unit-dots .map-item{position:relative;isolation:isolate}
+.unit-card .unit-dots.show-week-plans .map-item.week-planned,
+.unit-card .unit-grouped-map.show-week-plans .map-item.week-planned{
+  background:transparent!important;border:0!important;outline:0!important;
+  padding:0!important;margin:0!important;border-radius:0!important;
+}
+.unit-card .unit-dots.show-week-plans .map-item.week-planned{--stroke-half-gap:2.5px}
+.unit-card .unit-grouped-map.show-week-plans .map-item.week-planned{--stroke-half-gap:4px}
+.unit-card .unit-dots.show-week-plans .map-item.week-planned::before,
+.unit-card .unit-grouped-map.show-week-plans .map-item.week-planned::before{
+  content:"";position:absolute;z-index:-1;
+  top:-3px;bottom:auto;height:34px;
+  left:calc(-1 * var(--stroke-half-gap));
+  right:calc(-1 * var(--stroke-half-gap));
+  border-radius:0;
+  background:color-mix(in srgb,var(--week-color) 36%,var(--panel));
+  transform:none!important;pointer-events:none;
+}
+.unit-card .unit-dots.show-week-plans .map-item.week-start::before,
+.unit-card .unit-grouped-map.show-week-plans .map-item.week-start::before{
+  left:0;border-radius:8px 0 0 8px;
+}
+.unit-card .unit-dots.show-week-plans .map-item.week-end::before,
+.unit-card .unit-grouped-map.show-week-plans .map-item.week-end::before{
+  right:0;border-radius:0 8px 8px 0;
+}
+.unit-card .unit-dots.show-week-plans .map-item.week-start.week-end::before,
+.unit-card .unit-grouped-map.show-week-plans .map-item.week-start.week-end::before{
+  border-radius:8px;
+}
+/* Wrap boundaries must be separated even for the same assigned week. */
+.unit-card .unit-dots.show-week-plans .map-item:nth-child(10n + 1)::before,
+.unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid>.map-item:nth-child(10n + 1)::before{
+  left:0;border-top-left-radius:8px;border-bottom-left-radius:8px;
+}
+.unit-card .unit-dots.show-week-plans .map-item:nth-child(10n)::before,
+.unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid>.map-item:nth-child(10n)::before{
+  right:0;border-top-right-radius:8px;border-bottom-right-radius:8px;
+}
+.unit-card .unit-grouped-map.show-week-plans .map-item .node,
+.unit-card .unit-dots.show-week-plans .map-item .node{position:relative;z-index:1}
+.unit-card .unit-grouped-map.show-week-plans .map-week-badge,
+.unit-card .unit-dots.show-week-plans .map-week-badge{
+  position:relative;z-index:1;background:transparent!important;border:0!important;
+  color:var(--week-color)!important;font-weight:800;
+}
+@media(max-width:760px){
+  .unit-card .unit-grouped-map .topic-leaf-grid{grid-template-columns:repeat(8,minmax(0,34px))}
+  .unit-card .unit-dots.show-week-plans .map-item:nth-child(10n + 1)::before,
+  .unit-card .unit-dots.show-week-plans .map-item:nth-child(10n)::before,
+  .unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid>.map-item:nth-child(10n + 1)::before,
+  .unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid>.map-item:nth-child(10n)::before{left:calc(-1 * var(--stroke-half-gap));right:calc(-1 * var(--stroke-half-gap));border-radius:0}
+  .unit-card .unit-dots.show-week-plans .map-item:nth-child(8n + 1)::before,
+  .unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid>.map-item:nth-child(8n + 1)::before{left:0;border-radius:8px 0 0 8px}
+  .unit-card .unit-dots.show-week-plans .map-item:nth-child(8n)::before,
+  .unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid>.map-item:nth-child(8n)::before{right:0;border-radius:0 8px 8px 0}
+}
+@media(max-width:420px){
+  .unit-card .unit-grouped-map .topic-leaf-grid{grid-template-columns:repeat(7,minmax(0,32px));gap:10px 7px}
+  .unit-card .unit-grouped-map.show-week-plans .map-item.week-planned{--stroke-half-gap:3.5px}
+  .unit-card .unit-dots.show-week-plans .map-item:nth-child(8n + 1)::before,
+  .unit-card .unit-dots.show-week-plans .map-item:nth-child(8n)::before,
+  .unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid>.map-item:nth-child(8n + 1)::before,
+  .unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid>.map-item:nth-child(8n)::before{left:calc(-1 * var(--stroke-half-gap));right:calc(-1 * var(--stroke-half-gap));border-radius:0}
+  .unit-card .unit-dots.show-week-plans .map-item:nth-child(7n + 1)::before,
+  .unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid>.map-item:nth-child(7n + 1)::before{left:0;border-radius:8px 0 0 8px}
+  .unit-card .unit-dots.show-week-plans .map-item:nth-child(7n)::before,
+  .unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid>.map-item:nth-child(7n)::before{right:0;border-radius:0 8px 8px 0}
+}

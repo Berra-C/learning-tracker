@@ -168,3 +168,37 @@
 .unit-card .unit-grouped-map .topic-leaf-grid .map-item .node .node-check {
   position:relative; z-index:3;
 }
+
+/* v0.1.8 — only ONE translucent background element per same-week run.
+   Disable historical per-node highlights in BOTH normal and subgroup modes. */
+#unitsGrid .unit-dots.show-week-plans .map-item.week-planned::before,
+#unitsGrid .unit-grouped-map.show-week-plans .map-item.week-planned::before {
+  content:none!important;
+  display:none!important;
+  background:none!important;
+  box-shadow:none!important;
+}
+#unitsGrid .unit-dots, #unitsGrid .topic-leaf-grid {
+  position:relative;
+  isolation:isolate;
+}
+#unitsGrid .lt-week-band {
+  position:absolute!important;
+  z-index:0!important;
+  pointer-events:none;
+  border:0!important;
+  border-radius:7px;
+  box-shadow:none!important;
+  opacity:1!important;
+  background:color-mix(in srgb, var(--week-color) 28%, transparent)!important;
+}
+#unitsGrid .unit-dots > .map-item,
+#unitsGrid .topic-leaf-grid > .map-item {
+  z-index:1!important;
+  position:relative;
+  isolation:auto!important;
+  background:transparent!important;
+}
+#unitsGrid .map-item .node,
+#unitsGrid .map-item .node svg,
+#unitsGrid .map-item .node .node-check { position:relative;z-index:2; }

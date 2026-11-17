@@ -140,3 +140,31 @@
  background:color-mix(in srgb,var(--week-color) 36%,var(--panel));
  border-radius:8px;
 }
+
+/* v0.1.7 — translucent highlighter BEHIND visible topic shapes.
+   One band is painted for each adjacent same-week run by 04-ui.js.
+   Keep shapes and their completion indicators above the band. */
+.unit-card .unit-dots.show-week-plans,
+.unit-card .unit-grouped-map.show-week-plans .topic-leaf-grid {
+  position:relative; isolation:isolate;
+}
+.unit-card .lt-week-band {
+  background:color-mix(in srgb,var(--week-color) 28%,transparent)!important;
+  opacity:1; /* alpha is in the color, avoiding child icon transparency */
+  border:0; box-shadow:none;
+  z-index:0;
+}
+.unit-card .unit-dots .map-item,
+.unit-card .unit-grouped-map .topic-leaf-grid > .map-item {
+  position:relative; z-index:1; background:transparent!important;
+}
+.unit-card .unit-dots .map-item .node,
+.unit-card .unit-grouped-map .topic-leaf-grid .map-item .node {
+  position:relative; z-index:2; background:transparent!important;
+}
+.unit-card .unit-dots .map-item .node svg,
+.unit-card .unit-grouped-map .topic-leaf-grid .map-item .node svg,
+.unit-card .unit-dots .map-item .node .node-check,
+.unit-card .unit-grouped-map .topic-leaf-grid .map-item .node .node-check {
+  position:relative; z-index:3;
+}

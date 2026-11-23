@@ -351,3 +351,14 @@
 #hoursBreakdown{display:block;margin-top:5px}
 #hoursBreakdown .lt-study-dashboard{margin-top:10px}
 @media(max-width:720px){.lt-study-dashboard{grid-template-columns:1fr;gap:12px}.lt-course-study-card small{margin-left:0;width:100%}.lt-study-panel{padding:15px}}
+
+/* v0.1.16 - Productivity study period selector */
+.lt-study-head{gap:12px;flex-wrap:wrap}
+.lt-study-head-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.lt-period-filter{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:11px;font-weight:650}
+.lt-study-period{border:1px solid var(--border);background:var(--panel);color:var(--text);font:inherit;border-radius:9px;padding:8px 10px;min-width:118px;cursor:pointer}
+.lt-study-period:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.lt-study-zero{font-size:11px;line-height:1.5;align-self:center}
+.lt-course-study-period{gap:10px;flex-wrap:wrap}
+.lt-course-study-period .lt-period-filter{margin-left:auto}
+@media(max-width:560px){.lt-study-head-controls{width:100%;justify-content:space-between}.lt-course-study-period .lt-period-filter{margin-left:0}}

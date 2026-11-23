@@ -492,27 +492,41 @@ async function handle(req:Request,body:any){
     }
   }
   if(action==='learning-tracker-study-summary'){
-    // Secondary, read-only integration. Never expose full Productivity App state.
+    // Read-only aggregation from Productivity App. The client provides local-date
+    // boundaries as epoch milliseconds; clamp them to reasonable date windows.
+    const now=Date.now();
+    const within=(raw:unknown,maxDays:number)=>{
+      const value=Number(raw);
+      if(!Number.isFinite(value)||value>now+86400000||value<now-maxDays*86400000)return null;
+      return value;
+    };
+    const weekStart=within(body.weekStart,10),monthStart=within(body.monthStart,45);
     const rows=await select(`app_states?select=state&account_id=eq.${accountId}&limit=1`);
     const saved=rows[0]?.state||{};
     const sessionLog=saved.sessionLog&&typeof saved.sessionLog==='object'?saved.sessionLog:{};
-    const totals=new Map<string,number>();
+    const totals=new Map<string,{seconds:number;weekSeconds:number;monthSeconds:number}>();
     for(const list of Object.values(sessionLog)){
       if(!Array.isArray(list))continue;
       for(const session of list){
         if(!session||typeof session!=='object')continue;
         const subject=String(session.subject||'Genel').trim().slice(0,100)||'Genel';
-        let seconds=0;
+        const total=totals.get(subject)||{seconds:0,weekSeconds:0,monthSeconds:0};
         const intervals=Array.isArray(session.workIntervals)?session.workIntervals:[];
         for(const interval of intervals){
           const a=Number(interval?.start),b=Number(interval?.end);
-          if(Number.isFinite(a)&&Number.isFinite(b)&&b>a)
-            seconds+=Math.min((b-a)/1000,86400);
+          if(!Number.isFinite(a)||!Number.isFinite(b)||b<=a)continue;
+          const validEnd=Math.min(b,a+86400000,now);
+          if(validEnd<=a)continue;
+          total.seconds+=(validEnd-a)/1000;
+          // Count only the actual overlap with the selected period, including
+          // intervals that started before Monday or the rolling month cutoff.
+          if(weekStart!==null)total.weekSeconds+=Math.max(0,validEnd-Math.max(a,weekStart))/1000;
+          if(monthStart!==null)total.monthSeconds+=Math.max(0,validEnd-Math.max(a,monthStart))/1000;
         }
-        totals.set(subject,(totals.get(subject)||0)+seconds);
+        totals.set(subject,total);
       }
     }
-    return json({subjects:[...totals.entries()].map(([subject,seconds])=>({subject,seconds:Math.round(seconds)})).sort((a,b)=>b.seconds-a.seconds)});
+    return json({periodsSupported:weekStart!==null&&monthStart!==null,subjects:[...totals.entries()].map(([subject,s])=>({subject,seconds:Math.round(s.seconds),weekSeconds:Math.round(s.weekSeconds),monthSeconds:Math.round(s.monthSeconds)})).sort((a,b)=>b.seconds-a.seconds)});
   }
   return json({error:'Bilinmeyen işlem.'},400);
 }
